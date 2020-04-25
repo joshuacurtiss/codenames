@@ -2,33 +2,38 @@
     <main>
         <nav>
             <h1 class="third">Codenames</h1>
-            <div class="third btn-container">
+            <div v-show='gameInited' class="third btn-container">
                 <span class='btn' @click='newGame'>New Game</span>
             </div>
-            <div class="third btn-container text-right">
+            <div v-show='gameInited' class="third btn-container text-right">
                 <span :class='{btn: true, selected:isSpymaster}' @click='isSpymaster=true'>Spymaster</span>
                 <span :class='{btn: true, selected:!isSpymaster}' @click='isSpymaster=false'>Player</span>
             </div>
         </nav>
-        <div class="container">
+        <div :class="{
+            container: true,
+            dim: !websocketActive
+        }">
             <h2 :class='{"text-center": true, "invisible": !gameOver}'>Game Over</h2>
-            <p class="third score">
-                Score:
-                <strong v-for='i in maxTeams'
-                    v-bind:key='i'
-                    :class='"player"+(i-1)'
-                >
-                    <em v-if='i>1'> - </em>
-                    {{ teamScores[i-1] }}
-                </strong>
-            </p>
-            <p class="third text-center">
-                Current Team:
-                <span :class='"player"+currTeam'>{{ currTeamName }}</span>
-            </p>
-            <p class="third text-right">
-                <button type="button" :disabled='gameOver' @click='currTeam++'>End Turn</button>
-            </p>
+            <div v-show='gameInited'>
+                <p class="third score">
+                    Score:
+                    <strong v-for='i in maxTeams'
+                        v-bind:key='i'
+                        :class='"player"+(i-1)'
+                    >
+                        <em v-if='i>1'> - </em>
+                        {{ teamScores[i-1] }}
+                    </strong>
+                </p>
+                <p class="third text-center">
+                    Current Team:
+                    <span :class='"player"+currTeam'>{{ currTeamName }}</span>
+                </p>
+                <p class="third text-right">
+                    <button type="button" :disabled='gameOver' @click='currTeam++; sendUpdate()'>End Turn</button>
+                </p>
+            </div>
             <div :class='{
                 gameover: gameOver,
                 spymaster: isSpymaster,
@@ -51,15 +56,29 @@
                 </div>
             </div>
         </div>
+        <div v-show='!gameInited && this.settings' class='startGameDialog'>
+            <h2>Start a New Game</h2>
+            <form @submit.prevent='connect(); newGame()'>
+                <input type="text" v-model="name" />
+                <button type="submit">Start!</button>
+            </form>
+        </div>
+        <div v-show='settings && gameInited && !websocketActive' class="reconnecting">
+            Reconnecting...
+        </div>
     </main>
 </template>
 
 <script>
 import dict from './assets/dict.json'
+const VER = process.env.PACKAGE_VERSION || 0
+let websocket = null
+let websocketTimeout = null
 export default {
     name: 'App',
     data () {
         return {
+            name: location.pathname.substring(1),
             boardSize: 25,
             maxTeams: 2,
             currTeam: 0,
@@ -67,7 +86,9 @@ export default {
             isSpymaster: false,
             tileIndices: [],
             tileOwners: [],
-            tileStatuses: []
+            tileStatuses: [],
+            settings: null,
+            websocketActive: false
         }
     },
     computed: {
@@ -78,8 +99,11 @@ export default {
         dictWords () {
             return dict[this.lang]
         },
+        gameInited () {
+            return this.tileIndices.length > 0
+        },
         gameOver () {
-            return this.teamScores.includes(0) || this.tileStatuses[this.tileOwners.indexOf(-1)]
+            return this.gameInited && (this.teamScores.includes(0) || this.tileStatuses[this.tileOwners.indexOf(-1)])
         },
         isPlayer () {
             return !this.isSpymaster
@@ -103,11 +127,45 @@ export default {
         }
     },
     methods: {
+        /**
+         * Handles connecting to the WebSocket and setting up the event listeners.
+         */
+        connect () {
+            // Only if our AJAX call to get settings has found a port
+            if (this.settings.wssport) {
+                // Close an existing connection
+                if (websocket) websocket.close()
+                // Create the WebSocket connection
+                websocket = new WebSocket(`${location.protocol.replace(/^http/, 'ws')}//${location.hostname}:${this.settings.wssport}/${this.name}`)
+                // Message handler. In this case, prepend the message to array of messages, while truncating old messages.
+                websocket.addEventListener('message', ev => {
+                    const data = JSON.parse(ev.data)
+                    this.receiveMessage(data)
+                })
+                // On open connection, mark active status and clear out any timer for reconnection
+                websocket.addEventListener('open', () => {
+                    clearTimeout(websocketTimeout)
+                    this.websocketActive = true
+                })
+                // On closed connection, mark acctive status and start a timer to try to reconnect
+                websocket.addEventListener('close', () => {
+                    this.websocketActive = false
+                    websocketTimeout = setTimeout(this.connect, 6000)
+                })
+            }
+        },
+        /**
+         * Handles clicking on a word tile
+         */
         tileClick (index) {
             if (this.gameOver || this.tileStatuses[index]) return
             this.$set(this.tileStatuses, index, true)
             if (this.tileOwners[index] !== this.currTeam && this.tileOwners[index] >= 0) this.currTeam++
+            this.sendUpdate()
         },
+        /**
+         * Returns an array of numbers that correspond to the word dictionary for the selected language
+         */
         wordRandomizer (size = this.boardSize) {
             const out = []
             for (var i = 0; i < size; i++) {
@@ -116,6 +174,9 @@ export default {
             }
             return out
         },
+        /**
+         * Returns an array of numbers that assign owners to the tiles in the game, plus the bomb
+         */
         ownerRandomizer (size = this.boardSize) {
             const out = Array(size).fill(null)
             const qty = Math.floor(size * 0.75 / this.maxTeams)
@@ -131,15 +192,50 @@ export default {
             return out
         },
         newGame () {
+            if (this.name.length === 0) return
+            window.history.replaceState(this.name, `Codenames: ${this.name}`, `/${encodeURIComponent(this.name)}`)
             this.isSpymaster = false
             this.tileIndices = this.wordRandomizer()
             this.tileOwners = this.ownerRandomizer()
             this.tileStatuses = this.tileIndices.map(item => false)
             this.currTeam = 0
+            this.sendUpdate()
+        },
+        receiveMessage (data) {
+            if (data.action === 'sync') this.sendUpdate()
+            if (data.ver !== VER) return
+            if (data.action === 'update') {
+                this.boardSize = data.boardSize
+                this.lang = data.lang
+                this.tileIndices = data.tileIndices
+                this.maxTeams = data.maxTeams
+                this.currTeam = data.currTeam
+                this.tileOwners = data.tileOwners
+                this.tileStatuses = data.tileStatuses
+            }
+        },
+        sendUpdate () {
+            if (websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    action: 'update',
+                    ver: VER,
+                    boardSize: this.boardSize,
+                    maxTeams: this.maxTeams,
+                    currTeam: this.currTeam,
+                    lang: this.lang,
+                    tileIndices: this.tileIndices,
+                    tileOwners: this.tileOwners,
+                    tileStatuses: this.tileStatuses
+                }))
+            } else {
+                setTimeout(this.sendUpdate, 100)
+            }
         }
     },
-    mounted () {
-        if (!this.tileIndices.length) this.newGame()
+    async mounted () {
+        const req = await fetch('api/settings')
+        this.settings = await req.json()
+        if (this.name.length) this.connect()
     }
 }
 </script>
@@ -148,6 +244,10 @@ export default {
 main {
     -webkit-user-select: none;
     -moz-user-select: none;
+}
+.dim {
+    filter: opacity(0.3) blur(1px);
+    pointer-events: none;
 }
 nav {
     background-color: navy;
@@ -163,7 +263,7 @@ h1 {
 .btn-container {
     margin-top: 10px;
 }
-.btn {
+.btn {transition: filter 0.4s;
     cursor: pointer;
     font-size: 0.8em;
     margin-left: 10px;
@@ -182,6 +282,7 @@ h1 {
 }
 .container {
     margin: 0 12%;
+    transition: filter 0.4s;
 }
 .invisible {
     visibility: hidden;
@@ -259,5 +360,35 @@ h1 {
 }
 .sel.bomb {
     background-color: #111;
+}
+.reconnecting {
+    position: absolute;
+    top: 35vh;
+    width: 50%;
+    margin-left: 25%;
+    padding: 5vh 0;
+    text-align: center;
+    font-size: 1.2em;
+    background-color: white;
+    border: 1px solid #444;
+    border-radius: 6px;
+}
+.startGameDialog {
+    margin: 5% 0 0 15%;
+    padding: 0 0 25px 0;
+    width: 70%;
+    border: 1px solid #444;
+    border-radius: 6px;
+    text-align: center;
+}
+.startGameDialog input {
+    width: 60%;
+    font-size: 20px;
+    padding: 5px;
+}
+.startGameDialog button {
+    font-size: 20px;
+    margin-left: 10px;
+    padding: 6px;
 }
 </style>
