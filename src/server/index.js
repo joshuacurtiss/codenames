@@ -14,7 +14,7 @@ const app = express()
 const server = http.createServer(app)
 
 // WebSockets
-app.use(websockets({ server }, PORT))
+app.use(websockets({ server }))
 
 // API
 app.use(bodyParser.json())

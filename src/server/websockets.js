@@ -3,7 +3,7 @@ const uuidv4 = require('uuid').v4
 
 const PINGTIME = 60000
 
-exports = module.exports = (options, port) => {
+exports = module.exports = options => {
     const wss = new WebSocket.Server(options)
     const interval = setInterval(() => {
         wss.clients.forEach(ws => {
@@ -38,7 +38,7 @@ exports = module.exports = (options, port) => {
         req.wss = {
             server: wss,
             broadcast,
-            port: options.port || port
+            port: options.port || null
         }
         next()
     }

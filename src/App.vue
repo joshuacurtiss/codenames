@@ -57,10 +57,10 @@
             </div>
         </div>
         <div v-show='!gameInited && this.settings' class='startGameDialog'>
-            <h2>Start a New Game</h2>
-            <form @submit.prevent='connect(); newGame()'>
+            <h2>Start or Join a Game!</h2>
+            <form @submit.prevent='initGame'>
                 <input type="text" v-model="name" />
-                <button type="submit">Start!</button>
+                <button type="submit">Go!</button>
             </form>
         </div>
         <div v-show='settings && gameInited && !websocketActive' class="reconnecting">
@@ -131,12 +131,13 @@ export default {
          * Handles connecting to the WebSocket and setting up the event listeners.
          */
         connect () {
-            // Only if our AJAX call to get settings has found a port
-            if (this.settings.wssport) {
+            // Only if our AJAX call to get settings has completed and a name is selected.
+            if (this.settings && this.name) {
                 // Close an existing connection
                 if (websocket) websocket.close()
                 // Create the WebSocket connection
-                websocket = new WebSocket(`${location.protocol.replace(/^http/, 'ws')}//${location.hostname}:${this.settings.wssport}/${this.name}`)
+                if (this.settings.wssport) websocket = new WebSocket(`${location.protocol.replace(/^http/, 'ws')}//${location.hostname}:${this.settings.wssport}${location.pathname}`)
+                else websocket = new WebSocket(location.href.replace(/^http/, 'ws'))
                 // Message handler. In this case, prepend the message to array of messages, while truncating old messages.
                 websocket.addEventListener('message', ev => {
                     const data = JSON.parse(ev.data)
@@ -191,9 +192,13 @@ export default {
             }
             return out
         },
+        initGame () {
+            window.history.pushState(this.name, `Codenames: ${this.name}`, `/${this.name}`)
+            this.connect()
+            this.newGame()
+        },
         newGame () {
             if (this.name.length === 0) return
-            window.history.replaceState(this.name, `Codenames: ${this.name}`, `/${encodeURIComponent(this.name)}`)
             this.isSpymaster = false
             this.tileIndices = this.wordRandomizer()
             this.tileOwners = this.ownerRandomizer()
@@ -202,7 +207,7 @@ export default {
             this.sendUpdate()
         },
         receiveMessage (data) {
-            if (data.action === 'sync') this.sendUpdate()
+            if (data.action === 'sync' && this.gameInited) this.sendUpdate()
             if (data.ver !== VER) return
             if (data.action === 'update') {
                 this.boardSize = data.boardSize
