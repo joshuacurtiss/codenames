@@ -59,7 +59,7 @@
         <div v-show='!gameInited && this.settings' class='startGameDialog'>
             <h2>Start or Join a Game!</h2>
             <form @submit.prevent='initGame'>
-                <input type="text" v-model="name" />
+                <input type="text" v-model="name" @focus="$event.target.select()" />
                 <button type="submit">Go!</button>
             </form>
         </div>
@@ -78,7 +78,7 @@ export default {
     name: 'App',
     data () {
         return {
-            name: location.pathname.substring(1),
+            name: '',
             boardSize: 25,
             maxTeams: 2,
             currTeam: 0,
@@ -124,6 +124,9 @@ export default {
     watch: {
         currTeam (newval) {
             if (newval >= this.maxTeams) this.currTeam = 0
+        },
+        name (newval) {
+            this.name = newval.toLowerCase().replace(/\s/, '-').replace(/[^a-z0-9-]/, '')
         }
     },
     methods: {
@@ -236,6 +239,15 @@ export default {
                 setTimeout(this.sendUpdate, 100)
             }
         }
+    },
+    created () {
+        let name = location.pathname.substring(1)
+        if (!name) {
+            const rand1 = Math.floor(Math.random() * this.dictWords.length)
+            const rand2 = Math.floor(Math.random() * this.dictWords.length)
+            name = (this.dictWords[rand1] + '-' + this.dictWords[rand2])
+        }
+        this.name = name
     },
     async mounted () {
         const req = await fetch('api/settings')
@@ -388,11 +400,12 @@ h1 {
 }
 .startGameDialog input {
     width: 60%;
-    font-size: 20px;
+    font-size: 24px;
+    text-align: center;
     padding: 5px;
 }
 .startGameDialog button {
-    font-size: 20px;
+    font-size: 24px;
     margin-left: 10px;
     padding: 6px;
 }
