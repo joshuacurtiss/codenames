@@ -18,6 +18,9 @@ exports = module.exports = options => {
         ws.name = name
         ws.alive = true
         ws.on('message', data => {
+            const result = JSON.parse(data)
+            // Ignore pings
+            if (result.action === 'ping') return
             broadcast(data, ws.name, ws.uuid)
         })
         ws.on('pong', pong)

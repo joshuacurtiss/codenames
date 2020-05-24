@@ -86,6 +86,7 @@ import dict from './assets/dict'
 const VER = process.env.PACKAGE_VERSION || 0
 let websocket = null
 let websocketTimeout = null
+let pingInterval = null
 export default {
     name: 'App',
     data () {
@@ -167,12 +168,19 @@ export default {
                 // On open connection, mark active status and clear out any timer for reconnection
                 websocket.addEventListener('open', () => {
                     clearTimeout(websocketTimeout)
+                    clearInterval(pingInterval)
+                    pingInterval = setInterval(() => {
+                        websocket.send(JSON.stringify({
+                            action: 'ping'
+                        }))
+                    }, 60000)
                     this.websocketActive = true
                 })
                 // On closed connection, mark acctive status and start a timer to try to reconnect
                 websocket.addEventListener('close', () => {
                     this.websocketActive = false
-                    websocketTimeout = setTimeout(this.connect, 6000)
+                    websocketTimeout = setTimeout(this.connect, 2000)
+                    clearInterval(pingInterval)
                 })
             }
         },
