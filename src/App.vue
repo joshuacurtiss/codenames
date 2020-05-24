@@ -59,8 +59,20 @@
         <div v-show='!gameInited && this.settings' class='startGameDialog'>
             <h2>Start or Join a Game!</h2>
             <form @submit.prevent='initGame'>
-                <input type="text" v-model="name" @focus="$event.target.select()" />
-                <button type="submit">Go!</button>
+                <div>
+                    Dictionary:
+                    <select v-model='lang'>
+                        <option v-for='language in langs' :key='language' :value='language'>{{ language }}</option>
+                    </select>
+                    Teams:
+                    <select v-model='maxTeams'>
+                        <option v-for='key in [2,3,4]' :key='key' :value='key'>{{ key }}</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="text" v-model="name" @focus="$event.target.select()" />
+                    <button type="submit">Go!</button>
+                </div>
             </form>
         </div>
         <div v-show='settings && gameInited && !websocketActive' class="reconnecting">
@@ -70,7 +82,7 @@
 </template>
 
 <script>
-import dict from './assets/dict.json'
+import dict from './assets/dict'
 const VER = process.env.PACKAGE_VERSION || 0
 let websocket = null
 let websocketTimeout = null
@@ -82,7 +94,7 @@ export default {
             boardSize: 25,
             maxTeams: 2,
             currTeam: 0,
-            lang: 'en',
+            lang: 'Standard',
             isSpymaster: false,
             tileIndices: [],
             tileOwners: [],
@@ -108,6 +120,9 @@ export default {
         isPlayer () {
             return !this.isSpymaster
         },
+        langs () {
+            return Object.keys(dict)
+        },
         teamScores () {
             const results = []
             for (let i = 0; i < this.maxTeams; i++) {
@@ -124,6 +139,9 @@ export default {
     watch: {
         currTeam (newval) {
             if (newval >= this.maxTeams) this.currTeam = 0
+        },
+        lang () {
+            if (!this.gameInited) this.name = this.randomizeName()
         },
         name (newval) {
             this.name = newval.toLowerCase().replace(/\s/, '-').replace(/[^a-z0-9-]/, '')
@@ -238,16 +256,15 @@ export default {
             } else {
                 setTimeout(this.sendUpdate, 100)
             }
+        },
+        randomizeName () {
+            const rand1 = Math.floor(Math.random() * this.dictWords.length)
+            const rand2 = Math.floor(Math.random() * this.dictWords.length)
+            return this.dictWords[rand1] + '-' + this.dictWords[rand2]
         }
     },
     created () {
-        let name = location.pathname.substring(1)
-        if (!name) {
-            const rand1 = Math.floor(Math.random() * this.dictWords.length)
-            const rand2 = Math.floor(Math.random() * this.dictWords.length)
-            name = (this.dictWords[rand1] + '-' + this.dictWords[rand2])
-        }
-        this.name = name
+        this.name = location.pathname.substring(1) || this.randomizeName()
     },
     async mounted () {
         const req = await fetch('api/settings')
@@ -397,6 +414,9 @@ h1 {
     border: 1px solid #444;
     border-radius: 6px;
     text-align: center;
+}
+form div {
+    margin-bottom: 12px;
 }
 .startGameDialog input {
     width: 60%;
