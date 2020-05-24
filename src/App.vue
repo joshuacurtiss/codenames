@@ -14,8 +14,15 @@
             container: true,
             dim: !websocketActive
         }">
-            <h2 :class='{"text-center": true, "invisible": !gameOver}'>Game Over</h2>
             <div v-show='gameInited'>
+                <p class="text-center">
+                    <span class='gameoverMessage' v-if='gameOver'>
+                        Game Over
+                    </span>
+                    <small v-else-if='gameLink'>
+                        Share your game: <a target='_blank' :href='gameLink'>{{ gameLink }}</a>
+                    </small>
+                </p>
                 <p class="third score">
                     Score:
                     <strong v-for='i in maxTeams'
@@ -95,6 +102,7 @@ export default {
             boardSize: 25,
             maxTeams: 2,
             currTeam: 0,
+            gameLink: null,
             lang: 'Standard',
             isSpymaster: false,
             tileIndices: [],
@@ -223,6 +231,7 @@ export default {
         },
         initGame () {
             window.history.pushState(this.name, `Codenames: ${this.name}`, `/${this.name}`)
+            this.gameLink = location.href
             this.connect()
             this.newGame()
         },
@@ -273,6 +282,7 @@ export default {
     },
     created () {
         this.name = location.pathname.substring(1) || this.randomizeName()
+        this.gameLink = location.href
     },
     async mounted () {
         const req = await fetch('api/settings')
@@ -329,9 +339,6 @@ h1 a {
     margin: 0 12%;
     transition: filter 0.4s;
 }
-.invisible {
-    visibility: hidden;
-}
 .third {
     float: left;
     width: 29%;
@@ -350,6 +357,13 @@ h1 a {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
+}
+.gameoverMessage {
+    font-weight: bold;
+    color: firebrick;
+}
+small {
+    filter: brightness(60%);
 }
 .gameover .word {
     cursor: default;
