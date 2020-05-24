@@ -1,7 +1,7 @@
 <template>
     <main>
         <nav>
-            <h1 class="third">Codenames</h1>
+            <h1 class="third"><a href="/">Codenames</a></h1>
             <div v-show='gameInited' class="third btn-container">
                 <span class='btn' @click='newGame'>New Game</span>
             </div>
@@ -291,8 +291,11 @@ nav {
 h1 {
     font-family: 'VT323', monospace;
     font-size: 40px;
-    color: white;
     margin: 0;
+}
+h1 a {
+    text-decoration: none;
+    color: white;
 }
 .btn-container {
     margin-top: 10px;
