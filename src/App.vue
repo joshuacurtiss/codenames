@@ -338,6 +338,11 @@ h1 a {
 .score em {
     color: black;
 }
+.player, .spymaster {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+}
 .gameover .word {
     cursor: default;
 }
@@ -346,7 +351,6 @@ h1 a {
     border-radius: 5px;
     background-color: #cfcfcf;
     text-align: center;
-    float: left;
     width: 17.1%;
     padding: 4% 0;
     margin: 1% 1% 0.5% 1%;
