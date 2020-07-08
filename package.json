@@ -10,25 +10,25 @@
   },
   "dependencies": {
     "connect-history-api-fallback": "^1.6.0",
-    "core-js": "^3.6.4",
+    "core-js": "^3.6.5",
     "express": "^4.17.1",
-    "uuid": "^7.0.3",
+    "uuid": "^8.2.0",
     "vue": "^2.6.11",
-    "ws": "^7.2.5"
+    "ws": "^7.3.1"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.3.0",
-    "@vue/cli-plugin-eslint": "~4.3.0",
-    "@vue/cli-service": "~4.3.0",
+    "@vue/cli-plugin-babel": "~4.4.6",
+    "@vue/cli-plugin-eslint": "~4.4.6",
+    "@vue/cli-service": "~4.4.6",
     "@vue/eslint-config-standard": "^5.1.2",
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.0.0",
+    "eslint-plugin-standard": "^4.0.1",
     "eslint-plugin-vue": "^6.2.2",
-    "nodemon": "^2.0.3",
+    "nodemon": "^2.0.4",
     "vue-template-compiler": "^2.6.11"
   }
 }
