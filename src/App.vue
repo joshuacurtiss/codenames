@@ -33,12 +33,17 @@
                         {{ teamScores[i-1] }}
                     </strong>
                 </p>
-                <p class="third text-center">
+                <p class="third currteam text-center">
                     Current Team:
                     <span :class='"player"+currTeam'>{{ currTeamName }}</span>
                 </p>
                 <p class="third text-right">
-                    <button type="button" :disabled='gameOver' @click='currTeam++; sendUpdate()'>End Turn</button>
+                    <button
+                        type="button"
+                        class="endturnbtn"
+                        :disabled='gameOver'
+                        @click='currTeam++; sendUpdate()'
+                    >End Turn</button>
                 </p>
             </div>
             <div :class='{
@@ -322,7 +327,7 @@ h1 a {
     cursor: pointer;
     font-size: 0.8em;
     margin-left: 10px;
-    padding: 1px 10px;
+    padding: 8px 15px;
     border-radius: 3px;
     border: 1px solid #333;
     color: #333;
@@ -350,8 +355,16 @@ h1 a {
 .text-right {
     text-align: right;
 }
+.score, .currteam {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
 .score em {
     color: black;
+}
+.endturnbtn {
+    padding: 8px 15px;
+    cursor: pointer;
 }
 .player, .spymaster {
     display: flex;
