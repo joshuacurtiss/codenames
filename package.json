@@ -6,6 +6,7 @@
     "start": "node src/server",
     "serve": "nodemon --exec 'vue-cli-service serve'",
     "build": "vue-cli-service build",
+    "build:docker": "docker build . -t joshuacurtiss/codenames",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {

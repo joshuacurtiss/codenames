@@ -1,4 +1,4 @@
-# codenames
+# Codenames
 
 ## Project setup
 ```
@@ -15,10 +15,12 @@ yarn serve
 yarn build
 ```
 
-### Lints and fixes files
+### Starts production server
 ```
-yarn lint
+yarn start
 ```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+### Builds Docker image
+```
+yarn build:docker
+```
